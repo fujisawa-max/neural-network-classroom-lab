@@ -67,3 +67,28 @@ test('training lowers loss on a simple repeated class', () => {
   const after = -Math.log(forward(network, observations[0].pixels).at(-1)[0]);
   assert.ok(after < before, `${before} -> ${after}`);
 });
+
+test('training and validation accuracies use disjoint stratified data', () => {
+  const digits = [1, 4, 7, 0];
+  const data = Array.from({ length: 10 }, (_, index) => digits.map(digit => ({
+    digit,
+    pixels: Array(36).fill(index + digit)
+  }))).flat();
+  const room = new Classroom(data, [{ id: 'one', digit: 1, pixels: Array(36).fill(255) }], () => 0.5);
+  assert.equal(room.training.length, 32);
+  assert.equal(room.validation.length, 8);
+  assert.deepEqual(room.training.slice(0, 4).map(sample => sample.digit), digits);
+  for (const digit of digits) {
+    assert.equal(room.training.filter(sample => sample.digit === digit).length, 8);
+    assert.equal(room.validation.filter(sample => sample.digit === digit).length, 2);
+    assert.deepEqual(room.validation.filter(sample => sample.digit === digit).map(sample => Math.round(sample.pixels[0] * 255)), [digit + 8, digit + 9]);
+  }
+  const metrics = room.metrics();
+  assert.deepEqual(metrics.training, { correct: 8, total: 32, rate: 0.25 });
+  assert.deepEqual(metrics.validation, { correct: 2, total: 8, rate: 0.25 });
+  assert.equal(metrics.byDigit[1].rate, 1);
+  assert.equal(metrics.byDigit[4].rate, 0);
+  assert.equal(room.metrics(), metrics);
+  room.reset([3]);
+  assert.notEqual(room.metrics(), metrics);
+});

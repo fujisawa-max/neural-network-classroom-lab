@@ -6,6 +6,8 @@ let sampleTimer = null;
 let preTeacherSampleIndex = null;
 let fourImages = false, fourStep = 0;
 let samplesByDigit = [];
+let metrics = null;
+const accuracyText = stat => stat?.rate == null ? '—' : `${(stat.rate * 100).toFixed(1)}%`;
 const notify = (message, error = false) => {
   const box = byId('message'); box.textContent = message; box.classList.remove('hidden'); box.classList.toggle('error', error);
   clearTimeout(notify.timeout); notify.timeout = setTimeout(() => box.classList.add('hidden'), 5000);
@@ -35,8 +37,34 @@ async function init() {
   }));
   render();
   byId('connection').textContent = '接続中';
+  await refreshMetrics();
   setInterval(refreshControls, 1500);
   setInterval(() => { if (byId('auto-sync').checked) refreshWeights(); }, 2000);
+  setInterval(refreshMetrics, 5000);
+}
+
+async function refreshMetrics() {
+  try {
+    metrics = await api('/api/metrics');
+    renderAccuracy();
+  } catch {
+    byId('training-accuracy').textContent = '取得できません';
+    byId('validation-accuracy').textContent = '取得できません';
+  }
+}
+
+function renderAccuracy() {
+  if (!metrics) return;
+  for (const [key, id] of [['training', 'training-accuracy'], ['validation', 'validation-accuracy']]) {
+    const stat = metrics[key];
+    byId(id).textContent = accuracyText(stat);
+    byId(id).title = `${stat.correct.toLocaleString()} / ${stat.total.toLocaleString()} 件を正解`;
+  }
+  document.querySelectorAll('.row-accuracy').forEach(element => {
+    const stat = metrics.byDigit[element.dataset.digit];
+    element.textContent = accuracyText(stat);
+    element.title = `数字 ${element.dataset.digit}：${stat.correct.toLocaleString()} / ${stat.total.toLocaleString()} 件を正解（学習用）`;
+  });
 }
 
 function assignedValue() {
@@ -89,10 +117,13 @@ function renderFourImages() {
     image(resized, sample.pixels, 6);
     const bars = document.createElement('div'); bars.className = 'four-bars';
     bars.append(...outputRows(outputs, sample.digit, true));
-    row.append(digit, original, resized, bars);
+    const accuracy = document.createElement('strong'); accuracy.className = 'row-accuracy';
+    accuracy.dataset.digit = String(sample.digit);
+    row.append(digit, original, resized, bars, accuracy);
     return row;
   });
   byId('four-image-rows').replaceChildren(...rows);
+  renderAccuracy();
   return forward(network, samplesByDigit[0][fourStep % samplesByDigit[0].length].pixels);
 }
 

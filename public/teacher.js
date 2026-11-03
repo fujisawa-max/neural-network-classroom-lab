@@ -21,7 +21,7 @@ function render() {
   byId('force-off').disabled = !state.forceAutomatic;
   byId('fixed-status').textContent = state.fixedSampleId ? `固定中：${state.fixedSampleId}` : '現在、教員による固定はありません。';
   byId('unfix-sample').disabled = !state.fixedSampleId;
-  byId('dataset-count').textContent = `サーバ学習用 ${state.trainingCount.toLocaleString()}件 ／ 学生観察用 ${state.observationCount}件`;
+  byId('dataset-count').textContent = `サーバ学習用 ${state.trainingCount.toLocaleString()}件 ／ 検証用 ${state.validationCount.toLocaleString()}件 ／ 学生観察用 ${state.observationCount}件`;
   byId('participants').replaceChildren(...state.students.map((student, index) => {
     const row = document.createElement('div'); row.className = 'participant';
     row.textContent = `${index + 1}番　${student.weightId || '担当なし'}　${student.weightId ? student.mode === 'manual' ? '手動' : '自動' : '閲覧のみ'}`;

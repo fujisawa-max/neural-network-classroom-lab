@@ -94,6 +94,7 @@ async function handle(req, res, teacher) {
       }
       if (req.method === 'GET' && path === '/api/controls') return json(res, room.controls(session(req, res)));
       if (req.method === 'GET' && path === '/api/weights') { room.student(session(req, res)); return json(res, room.weights()); }
+      if (req.method === 'GET' && path === '/api/metrics') { room.student(session(req, res)); return json(res, room.metrics()); }
       if (req.method === 'POST' && path === '/api/mode') {
         const { mode } = await body(req);
         const student = room.setMode(session(req, res), mode);
